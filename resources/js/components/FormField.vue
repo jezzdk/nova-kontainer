@@ -1,7 +1,7 @@
 <template>
   <default-field :field="field" :errors="errors" :show-help-text="showHelpText">
     <template slot="field">
-      <div v-if="value">
+      <div v-if="value" class="mb-2">
         <template v-if="isVideo">
           <video controls width="300">
             <source :src="value.url" :type="videoType" />
@@ -9,50 +9,60 @@
           </video>
         </template>
         <template v-else-if="isImage">
-          <a :href="value.url" target="_blank"
-            ><img :src="value.url + '?w=300&h=300'" class="mb-2"
-          /></a>
+          <a :href="value.url" target="_blank">
+            <img :src="value.url + '?w=300&h=300'" class="mb-2">
+          </a>
+        </template>
+        <template v-else-if="isFile">
+          <a :href="value.url" target="_blank">{{ value.url }}</a>
         </template>
       </div>
 
       <button
         @click.prevent="openKontainer"
         class="btn btn-default btn-primary inline-flex items-center relative"
-        v-text="value ? 'Edit' : 'Browse'"
+        v-text="value ? __('Edit') : __('Browse')"
       >
-        Browse
+        {{ __('Browse') }}
       </button>
       <button
         v-if="value"
         @click.prevent="remove"
         class="btn btn-default btn-primary inline-flex items-center relative"
       >
-        Unlink
+        {{ __('Unlink') }}
       </button>
     </template>
   </default-field>
 </template>
 
 <script>
-import { FormField, HandlesValidationErrors } from "laravel-nova";
+import { FormField, HandlesValidationErrors } from 'laravel-nova';
 
 export default {
   mixins: [FormField, HandlesValidationErrors],
 
-  props: ["resourceName", "resourceId", "field"],
+  props: ['resourceName', 'resourceId', 'field'],
 
   data() {
     return {
       token: null,
+      popupWidth: 1024,
+      popupHeight: 768,
+      popupTop: 0,
+      popupLeft: 0,
     };
   },
 
   computed: {
     isImage() {
-      return this.value && this.value.type === "image";
+      return this.value && this.value.type === 'image';
     },
     isVideo() {
-      return this.value && this.value.type === "video";
+      return this.value && this.value.type === 'video';
+    },
+    isFile() {
+      return this.value && ! ['image','video'].includes(this.value.type);
     },
     videoType() {
       if (!this.value) {
@@ -60,25 +70,29 @@ export default {
       }
 
       if (/\.mp4/i.test(this.value.url)) {
-        return "video/mp4";
+        return 'video/mp4';
       }
 
       if (/\.webm/i.test(this.value.url)) {
-        return "video/webm";
+        return 'video/webm';
       }
 
-      return "unknown";
+      return 'unknown';
     },
   },
 
   mounted() {
     this.token = this.makeid(32);
+    this.popupWidth = window.screen.width * 0.8;
+    this.popupHeight = window.screen.height * 0.8;
+    this.popupTop = (window.screen.height * 0.15) / 2;
+    this.popupLeft = (window.screen.width * 0.2) / 2;
 
-    window.addEventListener("message", this.receive, false);
+    window.addEventListener('message', this.receive, false);
   },
 
   destroyed() {
-    window.removeEventListener("message", this.receive, false);
+    window.removeEventListener('message', this.receive, false);
   },
 
   methods: {
@@ -86,65 +100,80 @@ export default {
      * Set the initial, internal value for the field.
      */
     setInitialValue() {
-      this.value = this.field.value ? JSON.parse(this.field.value) : "";
+      this.value = this.field.value ? JSON.parse(this.field.value) : '';
     },
 
     /**
      * Fill the given FormData object with the field's internal value.
      */
     fill(formData) {
-      formData.append(this.field.attribute, JSON.stringify(this.value) || "");
+      formData.append(this.field.attribute, JSON.stringify(this.value) || '');
     },
 
     openKontainer() {
       if (!this.field.kontainerUrl) {
-        alert("Kontainer URL is missing");
+        alert(this.__('Kontainer URL is missing'));
         return;
       }
 
       // End the Kontainer URL with a trailing slash
-      let url = this.field.kontainerUrl.replace(/\/?$/, "/");
+      let url = this.field.kontainerUrl.replace(/\/?$/, '/');
 
       if (this.value && this.value.folderId) {
-        url += "folder/" + this.value.folderId + "/";
+        url += 'folder/' + this.value.folderId + '/';
       }
 
       if (this.value && this.value.fileId) {
-        url += "file/" + this.value.fileId + "/";
+        url += 'file/' + this.value.fileId + '/';
       }
 
-      url += "?cmsMode=1&cmsToken=" + this.token;
+      url += '?cmsMode=1&cmsToken=' + this.token;
 
       window.open(
         url,
-        "kontainer",
-        "width=1024,height=768,popup,toolbar=no,location=no"
+        'kontainer',
+        'width='+this.popupWidth+',height='+this.popupHeight+',top='+this.popupTop+',left='+this.popupLeft+',popup'
       );
     },
 
     receive(data) {
-      if (!new RegExp("kontainer.com").test(data.origin)) {
+      if (!new RegExp('kontainer.com').test(data.origin)) {
         return;
       }
 
       let imageData = JSON.parse(data.data);
 
       if (!imageData) {
-        alert("Error parsing image data");
-        return;
-      }
-
-      if (imageData.token !== this.token) {
-          return;
-      }
-
-      if (imageData.type !== "image" && imageData.type !== "video") {
-        alert("Unknown type");
+        alert(this.__('Error parsing image data'));
         return;
       }
 
       if (!imageData.url) {
-        alert("Invalid URL");
+        alert(this.__('Invalid URL'));
+        return;
+      }
+
+      if (imageData.token !== this.token) {
+        return;
+      }
+
+      if (! ['image', 'video', 'file'].includes(imageData.type)) {
+        alert(this.__('Unknown type'));
+        return;
+      }
+
+      if (this.field.allowType === 'images' && imageData.type !== 'image') {
+        alert(this.__('Only images allowed'));
+        return;
+      }
+
+      if (this.field.allowType === 'videos' && imageData.type !== 'video') {
+        alert(this.__('Only videos allowed'));
+        return;
+      }
+
+      if (this.field.allowType === 'files' && imageData.type !== 'file') {
+        alert(this.__('Only files allowed'));
         return;
       }
 
@@ -156,7 +185,7 @@ export default {
     },
 
     makeid(length) {
-      let result = "";
+      let result = '';
       let characters =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
       let charactersLength = characters.length;

@@ -19,4 +19,19 @@ class NovaKontainer extends Field
     {
         return $this->withMeta(['kontainerUrl' => $url]);
     }
+
+    public function onlyImages()
+    {
+        return $this->withMeta(['allowType' => 'images']);
+    }
+
+    public function onlyVideos()
+    {
+        return $this->withMeta(['allowType' => 'videos']);
+    }
+
+    public function onlyFiles()
+    {
+        return $this->withMeta(['allowType' => 'files']);
+    }
 }

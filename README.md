@@ -53,6 +53,14 @@ public function fields()
 }
 ```
 
+You can limit the allowed file type by using the following methods:
+
+```php
+NovaKontainer::make(__('Image'))->onlyImages();
+NovaKontainer::make(__('Video'))->onlyVideos();
+NovaKontainer::make(__('File'))->onlyFiles();
+```
+
 ## Upgrading from v1
 
 From v2 the data will be saved as json in the database. If you have already used v1 for a while, and you already have data, you should migrate your data to the new json format.
