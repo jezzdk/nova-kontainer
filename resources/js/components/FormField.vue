@@ -137,7 +137,7 @@ export default {
     },
 
     receive(data) {
-      if (!new RegExp('kontainer.com').test(data.origin)) {
+      if (!this.field.kontainerUrl.includes(data.origin)) {
         return;
       }
 
