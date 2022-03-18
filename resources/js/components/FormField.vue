@@ -19,6 +19,7 @@
       </div>
 
       <button
+        :disabled="field.readonly"
         @click.prevent="openKontainer"
         class="btn btn-default btn-primary inline-flex items-center relative"
         v-text="value ? __('Edit') : __('Browse')"
@@ -27,6 +28,7 @@
       </button>
       <button
         v-if="value"
+        :disabled="field.readonly"
         @click.prevent="remove"
         class="btn btn-default btn-primary inline-flex items-center relative"
       >
