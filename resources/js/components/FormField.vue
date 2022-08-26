@@ -121,12 +121,16 @@ export default {
       // End the Kontainer URL with a trailing slash
       let url = this.field.kontainerUrl.replace(/\/?$/, '/');
 
-      if (this.value && this.value.folderId) {
-        url += 'folder/' + this.value.folderId + '/';
-      }
+      if (this.value && (this.value.folderId || this.value.fileId)) {
+        if (this.value.folderId) {
+            url += 'folder/' + this.value.folderId + '/';
+        }
 
-      if (this.value && this.value.fileId) {
-        url += 'file/' + this.value.fileId + '/';
+        if (this.value.fileId) {
+            url += 'file/' + this.value.fileId + '/';
+        }
+      } else {
+        url += 'login-cms-redirect/';
       }
 
       url += '?cmsMode=1&cmsToken=' + this.token;
